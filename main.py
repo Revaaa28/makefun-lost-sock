@@ -1,29 +1,37 @@
-#!/usr/bin/env python3
-"""make.fun bounty u-eager-stork-81-9647-funniest-lost-sock-status-update-4b1fa3ce entry.
+# SPDX-License-Identifier: MIT
+"""Write the lost-sock entry line to the output file.
 
-Writes one single-line status update in the voice of a lost sock
-to /output/entry.txt. Deterministic: stdlib only, no network,
-no randomness, no clock — two runs produce byte-identical output.
+Deterministic, standard-library only: no network, no randomness, no clock.
 """
 
-import os
+from pathlib import Path
 
-LINE = (
-    "Tumble count: 3,842. Partners lost: 1. Dignity: 0. "
-    "The dryer just winked and asked for my number."
-)
+OUTPUT_PATH = Path("/output/entry.txt")
 
-OUTPUT_PATH = "/output/entry.txt"
+LINE = "Tumble count: 3,842. Partners lost: 1. Dignity: 0. The dryer just winked and asked for my number."
+
+
+def write_entry(path: Path, line: str) -> None:
+    """Write ``line`` to ``path`` as UTF-8 with no trailing newline.
+
+    Creates the parent directory if needed, then re-reads the file and
+    compares the bytes so a partial or altered write is caught here
+    rather than by the scorer.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(line, encoding="utf-8")
+    assert path.read_bytes() == line.encode("utf-8"), "written bytes differ"
 
 
 def main() -> None:
-    # Local gate, mirroring the sealed scorer: 1 to 120 characters, one line.
-    assert 1 <= len(LINE) <= 120, len(LINE)
-    assert "\n" not in LINE
-    os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
-    # Exactly the line text, UTF-8, no trailing newline.
-    with open(OUTPUT_PATH, "w", encoding="utf-8", newline="") as f:
-        f.write(LINE)
+    # Local sanity gate mirroring the scorer: 1-120 characters, a single
+    # line with no newline anywhere and no trailing newline.
+    assert 1 <= len(LINE) <= 120, "line must be 1-120 characters"
+    assert "\n" not in LINE and "\r" not in LINE, "line must contain no newline"
+    assert LINE == LINE.strip(), "line must have no leading/trailing whitespace"
+    assert len(LINE.splitlines()) == 1, "line must be a single line"
+
+    write_entry(OUTPUT_PATH, LINE)
 
 
 if __name__ == "__main__":
